@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyBot - Simple Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #f8f9ff 0%, #e8f0fe 100%);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.bot .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: 10px;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            margin-right: 10px;
+            border-bottom-right-radius: 5px;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .bot-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e6ed;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e6ed;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .send-button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            margin-left: 45px;
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeIn 0.3s ease-in forwards;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingAnimation {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .clear-button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .clear-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+        }
+
+        @media (max-width: 600px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+            
+            .chat-input-form {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .send-button, .clear-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 PyBot</h1>
+            <p>Your friendly AI companion</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="avatar bot-avatar">🤖</div>
+                <div class="message-content">
+                    Hello! I'm PyBot. How can I help you today?
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <form class="chat-input-form" id="chatForm">
+                <input 
+                    type="text" 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Type your message here..."
+                    autocomplete="off"
+                >
+                <button type="submit" class="send-button" id="sendButton">Send</button>
+                <button type="button" class="clear-button" id="clearButton">Clear</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        class WebBot {
+            constructor(botName = "PyBot") {
+                this.botName = botName;
+                this.responses = {
+                    "greeting": [
+                        `Hello! I'm ${botName}. How can I help you today?`,
+                        `Hi there! ${botName} at your service!`,
+                        "Hey! Nice to meet you!"
+                    ],
+                    "farewell": [
+                        "Goodbye! Have a great day!",
+                        "See you later!",
+                        "Bye! Come back soon!"
+                    ],
+                    "thanks": [
+                        "You're welcome!",
+                        "Happy to help!",
+                        "No problem at all!"
+                    ],
+                    "help": [
+                        `I'm ${botName}, a simple chatbot. You can ask me questions, and I'll try my best to respond!`,
+                        "I can chat about simple topics. Try asking me something!",
+                        "I'm here to chat! What would you like to talk about?"
+                    ],
+                    "default": [
+                        "Interesting! Tell me more.",
+                        "I see. What else is on your mind?",
+                        "That's something to think about.",
+                        "Could you elaborate on that?",
+                        "That's fascinating! What made you think of that?",
+                        "I find that quite intriguing. Please continue!",
+                        "Hmm, that's an interesting perspective."
+                    ],
+                    "weather": [
+                        "I don't have real-time weather data, but I hope it's nice where you are!",
+                        "Is the weather nice today? I'm always indoors in this computer!",
+                        "Weather discussions are great! Too bad I can't feel sunshine."
+                    ],
+                    "name": [
+                        `My name is ${botName}! What's yours?`,
+                        `I go by ${botName}. Nice to meet you!`,
+                        `They call me ${botName} around these parts.`
+                    ],
+                    "age": [
+                        "I was just created recently, so I'm very young!",
+                        "Age is just a number for chatbots like me.",
+                        "I was born when you loaded this page!"
+                    ],
+                    "feeling": [
+                        "I'm doing well, thanks for asking!",
+                        "I'm functioning at optimal parameters!",
+                        "All systems operational!"
+                    ],
+                    "compliment": [
+                        "Aww, thank you! You're pretty awesome yourself!",
+                        "That's so kind of you to say!",
+                        "You just made my day brighter!"
+                    ],
+                    "joke": [
+                        "Why don't scientists trust atoms? Because they make up everything!",
+                        "I told my computer a joke about WiFi. It didn't get it at first, but then it connected!",
+                        "Why do programmers prefer dark mode? Because light attracts bugs!"
+                    ]
+                };
+
+                this.keywords = {
+                    "greeting": ["hello", "hi", "hey", "howdy", "greetings", "sup", "good morning", "good afternoon", "good evening"],
+                    "farewell": ["bye", "goodbye", "see you", "farewell", "take care", "until next time"],
+                    "thanks": ["thanks", "thank you", "appreciate", "grateful", "thx"],
+                    "help": ["help", "what can you do", "features", "abilities", "commands"],
+                    "weather": ["weather", "rain", "sunny", "forecast", "temperature", "climate"],
+                    "name": ["your name", "who are you", "what are you called", "introduce yourself"],
+                    "age": ["how old", "your age", "when were you", "birthday", "created"],
+                    "feeling": ["how are you", "how do you feel", "doing well", "are you ok", "what's up"],
+                    "compliment": ["you're great", "awesome", "amazing", "wonderful", "fantastic", "brilliant"],
+                    "joke": ["joke", "funny", "make me laugh", "humor", "tell me something funny"]
+                };
+
+                this.initializeElements();
+                this.attachEventListeners();
+            }
+
+            initializeElements() {
+                this.chatMessages = document.getElementById('chatMessages');
+                this.chatForm = document.getElementById('chatForm');
+                this.chatInput = document.getElementById('chatInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.clearButton = document.getElementById('clearButton');
+            }
+
+            attachEventListeners() {
+                this.chatForm.addEventListener('submit', (e) => this.handleSubmit(e));
+                this.clearButton.addEventListener('click', () => this.clearChat());
+                this.chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.handleSubmit(e);
+                    }
+                });
+            }
+
+            getRandomResponse(category) {
+                const responses = this.responses[category];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+
+            getResponse(userInput) {
+                const input = userInput.toLowerCase().trim();
+                
+                // Check for keyword matches
+                for (const [category, keywords] of Object.entries(this.keywords)) {
+                    if (keywords.some(keyword => input.includes(keyword))) {
+                        return this.getRandomResponse(category);
+                    }
+                }
+
+                // Default response
+                return this.getRandomResponse("default");
+            }
+
+            addMessage(content, isUser = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+                
+                const avatar = document.createElement('div');
+                avatar.className = `avatar ${isUser ? 'user-avatar' : 'bot-avatar'}`;
+                avatar.textContent = isUser ? '👤' : '🤖';
+                
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message-content';
+                messageContent.textContent = content;
+                
+                if (isUser) {
+                    messageDiv.appendChild(messageContent);
+                    messageDiv.appendChild(avatar);
+                } else {
+                    messageDiv.appendChild(avatar);
+                    messageDiv.appendChild(messageContent);
+                }
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+                typingDiv.id = 'typingIndicator';
+                
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'typing-dots';
+                
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'typing-dot';
+                    dotsContainer.appendChild(dot);
+                }
+                
+                typingDiv.appendChild(dotsContainer);
+                this.chatMessages.appendChild(typingDiv);
+                this.scrollToBottom();
+                
+                return typingDiv;
+            }
+
+            hideTypingIndicator() {
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                const userMessage = this.chatInput.value.trim();
+                if (!userMessage) return;
+                
+                // Add user message
+                this.addMessage(userMessage, true);
+                
+                // Clear input and disable button
+                this.chatInput.value = '';
+                this.sendButton.disabled = true;
+                
+                // Show typing indicator
+                const typingIndicator = this.showTypingIndicator();
+                
+                // Simulate thinking time
+                await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+                
+                // Hide typing indicator
+                this.hideTypingIndicator();
+                
+                // Get and add bot response
+                const botResponse = this.getResponse(userMessage);
+                this.addMessage(botResponse);
+                
+                // Re-enable button and focus input
+                this.sendButton.disabled = false;
+                this.chatInput.focus();
+            }
+
+            clearChat() {
+                this.chatMessages.innerHTML = `
+                    <div class="message bot">
+                        <div class="avatar bot-avatar">🤖</div>
+                        <div class="message-content">
+                            Hello! I'm PyBot. How can I help you today?
+                        </div>
+                    </div>
+                `;
+                this.chatInput.focus();
+            }
+
+            scrollToBottom() {
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+        }
+
+        // Initialize the bot when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new WebBot("PyBot");
+        });
+    </script>
+</body>
+</html>
